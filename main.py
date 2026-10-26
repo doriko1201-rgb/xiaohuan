@@ -1,6 +1,7 @@
 import discord
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
 import asyncio
@@ -27,10 +28,7 @@ SYSTEM_PROMPT = """
 不談論醫療診斷、不提供用藥建議。
 """
 
-# 3. 設定最新版 AI 的大腦 (使用 google-genai 的新寫法)
-from google import genai
-from google.genai import types
-
+# 3. 設定最新版 AI 的大腦
 client_ai = genai.Client(api_key=GEMINI_API_KEY)
 
 # 4. 設定 Discord 機器人
