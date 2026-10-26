@@ -3,8 +3,9 @@ import os
 import google.generativeai as genai
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
+import asyncio
 
-# 1. 從 Render 的環境變數（Environment Variables）讀取機密
+# 1. 從 Render 的環境變數讀取機密
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 WAKE_WORD = "小環起床"
@@ -26,9 +27,11 @@ SYSTEM_PROMPT = """
 不談論醫療診斷、不提供用藥建議。
 """
 
-# 3. 設定 AI 的大腦
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro', system_instruction=SYSTEM_PROMPT)
+# 3. 設定最新版 AI 的大腦 (使用 google-genai 的新寫法)
+from google import genai
+from google.genai import types
+
+client_ai = genai.Client(api_key=GEMINI_API_KEY)
 
 # 4. 設定 Discord 機器人
 intents = discord.Intents.default()
@@ -56,12 +59,22 @@ async def on_message(message):
     if message.author.id in verified_users or client.user.mentioned_in(message):
         async with message.channel.typing():
             try:
-                response = model.generate_content(message.content)
+                # 呼叫新的大腦
+                response = await asyncio.to_thread(
+                    client_ai.models.generate_content,
+                    model='gemini-2.5-flash',
+                    contents=message.content,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.7,
+                    )
+                )
                 await message.reply(response.text)
             except Exception as e:
+                print(f"發生錯誤: {e}")
                 await message.reply("（歪頭）小環的腦袋打結了，等一下再試試看……")
 
-# 5. Render 需要的 Web 伺服器（用來讓 Render 以為我們有開網頁）
+# 5. Render 需要的 Web 伺服器
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -72,7 +85,6 @@ def run_server():
     server = HTTPServer(('0.0.0.0', 8080), SimpleHTTPRequestHandler)
     server.serve_forever()
 
-# 啟動網頁伺服器與機器人
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     client.run(DISCORD_TOKEN)
