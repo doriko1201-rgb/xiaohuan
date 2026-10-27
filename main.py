@@ -67,12 +67,12 @@ async def on_message(message):
     async with message.channel.typing():
         try:
             response = await client_ai.aio.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=message.clean_content,
                 config=types.GenerateContentConfig(
                     system_instruction=instruction,
                     temperature=0.7,
-                    max_output_tokens=300,
+                    max_output_tokens=1024,
                 ),
             )
             text = response.text or "（眨眨眼）米奈不知道該說什麼……"
